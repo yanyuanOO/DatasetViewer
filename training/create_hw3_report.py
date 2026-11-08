@@ -36,40 +36,71 @@ LINE = colors.HexColor("#d7dfd8")
 
 
 class ArchitectureDiagram(Flowable):
-    def __init__(self, width: float, height: float = 92) -> None:
+    def __init__(self, width: float, height: float = 112) -> None:
         super().__init__()
         self.width = width
         self.height = height
 
     def draw(self) -> None:
         canvas = self.canv
-        boxes = [
-            (0, 104, "RGB", "192 → 64"),
-            (112, 104, "Goal", "2 → 16"),
-            (230, 172, "Gated residual", "v + sigmoid(Wg) x tanh(Wc)"),
-            (410, 100, "Classifier", "64 → 32 → 4"),
-        ]
-        y = 17
-        for x, width, title, detail in boxes:
-            canvas.setFillColor(colors.white if title != "Gated residual" else colors.HexColor("#fff2ea"))
-            canvas.setStrokeColor(LINE if title != "Gated residual" else ORANGE)
-            canvas.roundRect(x, y, width, 55, 6, fill=1, stroke=1)
+        input_x, input_w, input_h = 0, 128, 38
+        fusion_x, fusion_y, fusion_w, fusion_h = 205, 21, 205, 72
+        classifier_x, classifier_y, classifier_w, classifier_h = 444, 35, 92, 46
+
+        def input_box(y: float, title: str, detail: str, output_name: str) -> None:
+            canvas.setFillColor(colors.white)
+            canvas.setStrokeColor(LINE)
+            canvas.roundRect(input_x, y, input_w, input_h, 6, fill=1, stroke=1)
             canvas.setFillColor(MUTED)
-            canvas.setFont("Helvetica-Bold", 7)
-            canvas.drawString(x + 10, y + 37, title.upper())
+            canvas.setFont("Helvetica-Bold", 6.8)
+            canvas.drawString(input_x + 10, y + 24, title.upper())
             canvas.setFillColor(INK)
-            canvas.setFont("Helvetica-Bold", 8 if title != "Gated residual" else 7.4)
-            canvas.drawString(x + 10, y + 20, detail)
-        canvas.setStrokeColor(GREEN)
-        canvas.setLineWidth(1.6)
-        for start, end in ((104, 230), (216, 230), (402, 410)):
-            canvas.line(start + 2, y + 27, end - 4, y + 27)
-            canvas.line(end - 8, y + 31, end - 4, y + 27)
-            canvas.line(end - 8, y + 23, end - 4, y + 27)
+            canvas.setFont("Helvetica-Bold", 8)
+            canvas.drawString(input_x + 10, y + 10, detail)
+            canvas.setFillColor(GREEN)
+            canvas.setFont("Helvetica-Bold", 7)
+            canvas.drawRightString(input_x + input_w - 8, y + 10, output_name)
+
+        input_box(67, "RGB encoder", "192 -> 64 ReLU", "v")
+        input_box(13, "Goal encoder", "2 -> 16 ReLU", "g")
+
+        canvas.setFillColor(colors.HexColor("#fff2ea"))
+        canvas.setStrokeColor(ORANGE)
+        canvas.setLineWidth(1.25)
+        canvas.roundRect(fusion_x, fusion_y, fusion_w, fusion_h, 7, fill=1, stroke=1)
         canvas.setFillColor(MUTED)
-        canvas.setFont("Helvetica", 7)
-        canvas.drawString(6, 3, "Separate modality encoders")
-        canvas.drawCentredString(316, 3, "Goal controls a bounded correction to the visual path")
+        canvas.setFont("Helvetica-Bold", 7)
+        canvas.drawString(fusion_x + 12, fusion_y + 54, "GOAL-CONDITIONED GATED RESIDUAL")
+        canvas.setFillColor(INK)
+        canvas.setFont("Helvetica-Bold", 7.5)
+        canvas.drawString(fusion_x + 12, fusion_y + 34, "c = tanh(Wc [v, g])")
+        canvas.drawString(fusion_x + 12, fusion_y + 18, "z = v + sigmoid(Wgate g) x c")
+
+        canvas.setFillColor(colors.white)
+        canvas.setStrokeColor(LINE)
+        canvas.roundRect(classifier_x, classifier_y, classifier_w, classifier_h, 6, fill=1, stroke=1)
+        canvas.setFillColor(MUTED)
+        canvas.setFont("Helvetica-Bold", 6.8)
+        canvas.drawString(classifier_x + 10, classifier_y + 29, "CLASSIFIER")
+        canvas.setFillColor(INK)
+        canvas.setFont("Helvetica-Bold", 7.8)
+        canvas.drawString(classifier_x + 10, classifier_y + 13, "64 -> 32 -> 4")
+
+        def arrow(x1: float, y1: float, x2: float, y2: float) -> None:
+            canvas.setStrokeColor(GREEN)
+            canvas.setLineWidth(1.5)
+            canvas.line(x1, y1, x2, y2)
+            canvas.line(x2 - 6, y2 + 4, x2, y2)
+            canvas.line(x2 - 6, y2 - 4, x2, y2)
+
+        arrow(input_x + input_w + 5, 86, fusion_x - 7, 74)
+        arrow(input_x + input_w + 5, 32, fusion_x - 7, 40)
+        arrow(fusion_x + fusion_w + 7, 57, classifier_x - 7, 57)
+
+        canvas.setFillColor(MUTED)
+        canvas.setFont("Helvetica", 6.8)
+        canvas.drawString(2, 0, "Parallel modality branches")
+        canvas.drawCentredString(fusion_x + fusion_w / 2, 5, "Goal features control the residual correction applied to the visual path")
 
 
 def page_decor(canvas, doc) -> None:
